@@ -1,0 +1,68 @@
+# !/bin/bash
+
+# Input: Number of Processors
+if [[ $1 =~ [0-9]+ ]]; then
+  NPy=$1
+else
+  echo "First argument NPy must be a positive integer"
+  exit 1
+fi 
+
+if [[ $2 =~ [0-9]+ ]]; then
+  NPz=$2
+else
+  echo "Second argument NPz must be a positive integer"
+  exit 1
+fi 
+
+if [ "$3" = "--debug" ] || [ "$4" = "--debug" ] || [ "$5" = "--debug" ]; then
+  DEBUG=TRUE
+else
+  DEBUG=FALSE
+fi
+
+if [ "$3" = "--shared" ] || [ "$4" = "--shared" ] || [ "$5" = "--shared" ]; then
+  SHARED_MEMORY=TRUE
+else
+  SHARED_MEMORY=FALSE
+fi
+
+if [ "$3" = "--toml" ] || [ "$4" = "--toml" ] || [ "$5" = "--toml" ]; then
+  TOML_INPUT=TRUE
+else
+  TOML_INPUT=FALSE
+fi
+
+################################################################
+
+rundir=`pwd`
+codedir=$(dirname $0)
+
+
+# Copy grid files from run dir
+mkdir $rundir/build
+cd $rundir/build/
+cp $codedir/* ./
+cp $rundir/grid_def.all ./
+cp $rundir/grid.h5 ./
+
+# Generate grid header files
+bash make_headers $NPy $NPz
+
+# Copy Custom Makefile, if present
+if test -f "${rundir}/Makefile"; then
+  cp $rundir/Makefile ./
+else
+  cp ./Makefile_0 ./Makefile
+fi
+
+# Compile the code (in build)
+make clean
+make DEBUG=$DEBUG SHARED_MEMORY=$SHARED_MEMORY TOML_INPUT=$TOML_INPUT
+
+# Copy the executable back to the run dir
+cp diablo $rundir
+cd $rundir
+rm -r $rundir/build
+
+exit 0

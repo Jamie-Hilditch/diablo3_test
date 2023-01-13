@@ -1,0 +1,95 @@
+# Flags (pass as commandline variables e.g. make DEBUG=TRUE)
+DEBUG ?= FALSE
+SHARED_MEMORY ?= FALSE
+TOML_INPUT ?= FALSE
+
+#############################################################################
+# Fortran 90 complier to use: gfortran or ifort
+COMPILER = gfortran
+
+# FFTW3 library to Link
+FFTW_LIB = /share/software/user/open/fftw/3.3.10/lib
+
+# FFTW include directory
+FFTW_INCLUDE = /share/software/user/open/fftw/3.3.10/include
+
+# TOML library to link 
+TOML_LIB = /home/users/hilditch/packages/toml-f/lib64
+
+# TOML include modules directory 
+TOML_INCLUDE = /home/users/hilditch/packages/toml-f/include/toml-f/modules
+
+#############################################################################
+
+# Optimise or debug(compiler dependent)
+ifeq ($(DEBUG),FALSE)
+  ifeq ($(COMPILER),ifort)
+    FCFLAGS += -O3 -fpp -ipo -xHost
+  else ifeq ($(COMPILER),gfortran)
+    FCFLAGS += -O3 -cpp -march=native -flto
+  endif
+else
+  ifeq ($(COMPILER),ifort)
+    FCFLAGS += -O0 -fpp -g check all traceback 
+  else ifeq ($(COMPILER),gfortran)
+    FCFLAGS += -Og -cpp -g -fcheck=all -fbacktrace -pg
+  endif
+endif
+  
+# Include FFTW
+FCFLAGS += -I$(FFTW_INCLUDE)
+
+# Link libraries
+LDFLAGS += -lgfortran -L$(FFTW_LIB) -lfftw3 
+
+# Shared memory
+ifneq ($(SHARED_MEMORY),FALSE)
+  FCFLAGS += -DSHARED_MEMORY
+endif
+
+# TOML
+ifneq ($(TOML_INPUT),FALSE)
+  FCFLAGS += -I$(TOML_INCLUDE) -DTOML_INPUT
+  LDFLAGS += -L$(TOML_LIB) -ltoml-f
+endif
+
+
+
+# Parallel HDF5 compiler wrapper
+COMPILER = h5pfc
+
+SOURCES = parameters.o domain.o fft.o flow.o boundary.o phdf5.o ics.o les.o statistics.o advance.o control.o 
+
+diablo: diablo.f90 $(SOURCES)
+	$(COMPILER) $(FCFLAGS) $^ -o $@ $(LDFLAGS)
+
+%.o: %.f90
+	$(COMPILER) $(FCFLAGS) -c $<
+
+
+parameters.o: parameters.f90 grid_def 
+
+domain.o: domain.f90 parameters.o grid_mpi
+
+fft.o: fft.f90 parameters.o domain.o
+
+flow.o: flow.f90 parameters.o domain.o fft.o
+
+boundary.o: boundary.f90 parameters.o domain.o fft.o flow.o
+
+phdf5.o: phdf5.f90 parameters.o domain.o fft.o flow.o
+
+ics.o: ics.f90 parameters.o domain.o fft.o flow.o phdf5.o
+
+les.o: les.f90 parameters.o domain.o fft.o flow.o phdf5.o boundary.o
+
+statistics.o: statistics.f90 parameters.o domain.o fft.o flow.o boundary.o phdf5.o les.o
+
+advance.o: advance.f90 parameters.o domain.o fft.o flow.o boundary.o les.o channel.f90 forcing.f90
+
+control.o: control.f90 parameters.o domain.o flow.o phdf5.o statistics.o
+
+
+.PHONY: clean
+clean:
+	-rm -f *.o *.mod diablo

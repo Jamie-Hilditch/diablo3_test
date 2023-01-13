@@ -1,0 +1,5 @@
+# Full Grid Resolution
+Nx  = 256
+Ny  = 193
+Nz  = 16
+Nth = 1

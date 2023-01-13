@@ -1,0 +1,12 @@
+name: diablo3
+channels:
+  - conda-forge
+dependencies: 
+  - python=3.11
+  - numpy
+  - h5py
+  - scipy
+  - matplotlib
+  - dask
+  - cmocean
+  - seaborn
