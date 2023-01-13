@@ -21,7 +21,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/users/hilditch/packages/toml-f/lib
 # export OMPI_MCA_pml=^ucx
 
 
-$GROUP_HOME/hilditch/scripts/diablo3/for/setup_run 16 1 --toml > setup.log
+$GROUP_HOME/hilditch/scripts/diablo3_test/for/setup_run 8 2 --toml > setup.log
 
 srun -n 16 ./diablo > diablo.log
 # srun -n 32 valgrind --log-file=valgrind.log --track-origins=yes --error-limit=no --leak-check=full --show-leak-kinds=all --suppressions=/share/software/user/open/openmpi/4.1.2/share/openmpi/openmpi-valgrind.supp ./diablo > diablo.log
